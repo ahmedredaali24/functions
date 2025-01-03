@@ -1,18 +1,34 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const functions = require("firebase-functions");
+const stripe = require('stripe')("sk_test_51QVEcuFZsKu3gKZXb2hKPiDmT34H1XMBfKqiaWtCJNRKUwabWiEVZWiHYSMGn7oxX5VrBwSDRiWhuG0VnK1GDyDV00jqQUy2Dp");
 
-module.exports = async (req, res) => {
-  if (req.method === 'POST') {
-    const { amount } = req.body;
-    try {
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount * 100, // المبلغ بالـ سنتات
-        currency: 'usd',
+exports.stripePaymentIntentRequest = functions.https.onRequest(async (requestAnimationFrame, res) => {
+  try {
+    let customerId;
+    const customerList = await stripe.customers.list({
+      email: req.body.email,
+      limit: 1
+    });
+    if (customerList.data.length !== 0) {
+      customerId = customerList.data[0].id;
+
+    } else {
+      const customer = await stripe.customers.create({
+        email: req.body.email
       });
-      res.status(200).json({ clientSecret: paymentIntent.client_secret });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
+      customerId = customer.data.id;
     }
-  } else {
-    res.status(405).end(); // Method Not Allowed
+    const ephemeralKey = await stripe.ephemeralKey.create(
+      { customer: customerId }, { apiVersion: "2025-01-3" }
+    );
+    const paymentIntent = await stripe.paymentIntent.create({
+      paymentIntent: paymentIntent.client_secret,
+      ephemeralKey: ephemeralKey.secret,
+      customer: customerId,
+      success: true,
+    });
+  } catch (erorr) {
+    res.status(404).send({ success: false, erorr: erorr.message });
   }
-};
+}
+
+);
