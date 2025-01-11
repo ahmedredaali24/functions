@@ -21,7 +21,12 @@ exports.stripePaymentIntentRequest = functions.https.onRequest(async (requestAni
       { customer: customerId }, { apiVersion: "2025-01-3" }
     );
     const paymentIntent = await stripe.paymentIntent.create({
-      paymentIntent: paymentIntent.client_secret,
+      amount: parsenInt(req.body.amount),
+      currency: "usd",
+      customer: customerId,
+    });
+    res.status(200).send({
+       paymentIntent: paymentIntent.client_secret,
       ephemeralKey: ephemeralKey.secret,
       customer: customerId,
       success: true,
